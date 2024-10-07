@@ -18,7 +18,7 @@ const executeAccess = async (
   const localizationConfig = req?.payload?.config?.localization
   const localeConfig =
     localizationConfig && localizationConfig.locales.find((locale) => locale.code === req.locale)
-  const localeAccess = localeConfig.access && localeConfig.access[operation]
+  const localeAccess = localeConfig?.access && localeConfig.access[operation]
 
   if (localeAccess) {
     const result = await localeAccess({

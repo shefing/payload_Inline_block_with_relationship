@@ -250,9 +250,9 @@ export async function getEntityPolicies<T extends Args>(args: T): Promise<Return
 
     const localizationConfig =
       req.payload.config.localization && req.payload.config.localization.locales
-    const localeConfig = localizationConfig.find((l) => l.code === locale)
+    const localeConfig = localizationConfig && localizationConfig.find((l) => l.code === locale)
 
-    if (localeConfig.access && typeof localeConfig.access[operation] === 'function') {
+    if (localeConfig?.access && typeof localeConfig.access[operation] === 'function') {
       localeAccessPromise = createAccessPromise({
         access: localeConfig.access[operation],
         accessLevel: 'locale',
