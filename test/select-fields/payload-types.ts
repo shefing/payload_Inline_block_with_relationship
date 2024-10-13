@@ -12,6 +12,7 @@ export interface Config {
   };
   collections: {
     posts: Post;
+    'localized-posts': LocalizedPost;
     users: User;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -19,6 +20,7 @@ export interface Config {
   };
   collectionsSelect?: {
     posts: PostsSelect<false> | PostsSelect<true>;
+    'localized-posts': LocalizedPostsSelect<false> | LocalizedPostsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -29,7 +31,7 @@ export interface Config {
   };
   globals: {};
   globalsSelect?: {};
-  locale: null;
+  locale: 'en' | 'de';
   user: User & {
     collection: 'users';
   };
@@ -94,6 +96,75 @@ export interface Post {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "localized-posts".
+ */
+export interface LocalizedPost {
+  id: string;
+  text?: string | null;
+  number?: number | null;
+  group?: {
+    text?: string | null;
+    number?: number | null;
+  };
+  groupSecond?: {
+    text?: string | null;
+    number?: number | null;
+  };
+  array?:
+    | {
+        text?: string | null;
+        number?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  arraySecond?:
+    | {
+        text?: string | null;
+        number?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  blocks?:
+    | (
+        | {
+            text?: string | null;
+            introText?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'intro';
+          }
+        | {
+            text?: string | null;
+            ctaText?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'cta';
+          }
+      )[]
+    | null;
+  blocksSecond?:
+    | (
+        | {
+            text?: string | null;
+            introText?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'intro';
+          }
+        | {
+            text?: string | null;
+            ctaText?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'cta';
+          }
+      )[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -119,6 +190,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'posts';
         value: string | Post;
+      } | null)
+    | ({
+        relationTo: 'localized-posts';
+        value: string | LocalizedPost;
       } | null)
     | ({
         relationTo: 'users';
@@ -187,6 +262,82 @@ export interface PostsSelect<T extends boolean = true> {
         id?: T;
       };
   blocks?:
+    | T
+    | {
+        intro?:
+          | T
+          | {
+              text?: T;
+              introText?: T;
+              id?: T;
+              blockName?: T;
+            };
+        cta?:
+          | T
+          | {
+              text?: T;
+              ctaText?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "localized-posts_select".
+ */
+export interface LocalizedPostsSelect<T extends boolean = true> {
+  text?: T;
+  number?: T;
+  group?:
+    | T
+    | {
+        text?: T;
+        number?: T;
+      };
+  groupSecond?:
+    | T
+    | {
+        text?: T;
+        number?: T;
+      };
+  array?:
+    | T
+    | {
+        text?: T;
+        number?: T;
+        id?: T;
+      };
+  arraySecond?:
+    | T
+    | {
+        text?: T;
+        number?: T;
+        id?: T;
+      };
+  blocks?:
+    | T
+    | {
+        intro?:
+          | T
+          | {
+              text?: T;
+              introText?: T;
+              id?: T;
+              blockName?: T;
+            };
+        cta?:
+          | T
+          | {
+              text?: T;
+              ctaText?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  blocksSecond?:
     | T
     | {
         intro?:

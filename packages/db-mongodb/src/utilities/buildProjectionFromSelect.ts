@@ -182,10 +182,6 @@ const traverseFields = ({
           if (blockSelectMode === 'include') {
             blocksSelect[block.slug]['id'] = true
             blocksSelect[block.slug]['blockType'] = true
-
-            // for (const name of field[RepetableBlocksFieldNames]) {
-            //   blocksSelect[block.slug][name] = true
-            // }
           }
 
           traverseFields({

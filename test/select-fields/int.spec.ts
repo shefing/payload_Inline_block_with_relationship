@@ -3,7 +3,7 @@ import { deepCopyObject, type Payload } from 'payload'
 import { fileURLToPath } from 'url'
 
 import type { NextRESTClient } from '../helpers/NextRESTClient.js'
-import type { Post } from './payload-types.js'
+import type { LocalizedPost, Post } from './payload-types.js'
 
 import { initPayloadInt } from '../helpers/initPayloadInt.js'
 
@@ -12,8 +12,6 @@ let restClient: NextRESTClient
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
-let post: Post
-let postId: number | string
 
 describe('Select Fields', () => {
   // --__--__--__--__--__--__--__--__--__
@@ -22,8 +20,6 @@ describe('Select Fields', () => {
   beforeAll(async () => {
     const initialized = await initPayloadInt(dirname)
     ;({ payload, restClient } = initialized)
-    post = await createPost()
-    postId = post.id
   })
 
   afterAll(async () => {
@@ -32,389 +28,982 @@ describe('Select Fields', () => {
     }
   })
 
-  describe('Local API - Base (Include mode)', () => {
-    it('should select only id as default', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {},
-      })
+  describe('Local API - Base', () => {
+    let post: Post
+    let postId: number | string
 
-      expect(res).toStrictEqual({
-        id: postId,
-      })
+    beforeEach(async () => {
+      post = await createPost()
+      postId = post.id
     })
 
-    it('should select only number', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          number: true,
-        },
-      })
-
-      expect(res).toStrictEqual({
-        id: postId,
-        number: post.number,
-      })
+    // Clean up to safely mutate in each test
+    afterEach(async () => {
+      await payload.delete({ id: postId, collection: 'posts' })
     })
 
-    it('should select number and text', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          number: true,
-          text: true,
-        },
+    describe('Include mode', () => {
+      it('should select only id as default', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {},
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+        })
       })
 
-      expect(res).toStrictEqual({
-        id: postId,
-        number: post.number,
-        text: post.text,
-      })
-    })
+      it('should select only number', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            number: true,
+          },
+        })
 
-    it('should select all the fields inside of group', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          group: true,
-        },
+        expect(res).toStrictEqual({
+          id: postId,
+          number: post.number,
+        })
       })
 
-      expect(res).toStrictEqual({
-        id: postId,
-        group: post.group,
-      })
-    })
+      it('should select number and text', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            number: true,
+            text: true,
+          },
+        })
 
-    it('should select text field inside of group', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
+        expect(res).toStrictEqual({
+          id: postId,
+          number: post.number,
+          text: post.text,
+        })
+      })
+
+      it('should select all the fields inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            group: true,
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          group: post.group,
+        })
+      })
+
+      it('should select text field inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            group: {
+              text: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
           group: {
-            text: true,
+            text: post.group.text,
           },
-        },
+        })
       })
 
-      expect(res).toStrictEqual({
-        id: postId,
-        group: {
-          text: post.group.text,
-        },
-      })
-    })
-
-    it('should select id as default from array', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          array: {},
-        },
-      })
-
-      expect(res).toStrictEqual({
-        id: postId,
-        array: post.array.map((item) => ({ id: item.id })),
-      })
-    })
-
-    it('should select all the fields inside of array', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          array: true,
-        },
-      })
-
-      expect(res).toStrictEqual({
-        id: postId,
-        array: post.array,
-      })
-    })
-
-    it('should select text field inside of array', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          array: {
-            text: true,
+      it('should select id as default from array', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            array: {},
           },
-        },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          array: post.array.map((item) => ({ id: item.id })),
+        })
       })
 
-      expect(res).toStrictEqual({
-        id: postId,
-        array: post.array.map((item) => ({
-          id: item.id,
-          text: item.text,
-        })),
-      })
-    })
-
-    it('should select base fields (id, blockType) inside of blocks', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          blocks: {},
-        },
-      })
-
-      expect(res).toStrictEqual({
-        id: postId,
-        blocks: post.blocks.map((block) => ({ blockType: block.blockType, id: block.id })),
-      })
-    })
-
-    it('should select all the fields inside of blocks', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          blocks: true,
-        },
-      })
-
-      expect(res).toStrictEqual({
-        id: postId,
-        blocks: post.blocks,
-      })
-    })
-
-    it('should select all the fields inside of specific block', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          blocks: {
-            cta: true,
+      it('should select all the fields inside of array', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            array: true,
           },
-        },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          array: post.array,
+        })
       })
 
-      expect(res).toStrictEqual({
-        id: postId,
-        blocks: post.blocks.map((block) =>
-          block.blockType === 'cta'
-            ? block
-            : {
-                id: block.id,
-                blockType: block.blockType,
-              },
-        ),
+      it('should select text field inside of array', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            array: {
+              text: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          array: post.array.map((item) => ({
+            id: item.id,
+            text: item.text,
+          })),
+        })
+      })
+
+      it('should select base fields (id, blockType) inside of blocks', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            blocks: {},
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks.map((block) => ({ blockType: block.blockType, id: block.id })),
+        })
+      })
+
+      it('should select all the fields inside of blocks', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            blocks: true,
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks,
+        })
+      })
+
+      it('should select all the fields inside of specific block', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'cta'
+              ? block
+              : {
+                  id: block.id,
+                  blockType: block.blockType,
+                },
+          ),
+        })
+      })
+
+      it('should select a specific field inside of specific block', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: { ctaText: true },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'cta'
+              ? { id: block.id, blockType: block.blockType, ctaText: block.ctaText }
+              : {
+                  id: block.id,
+                  blockType: block.blockType,
+                },
+          ),
+        })
       })
     })
 
-    it('should select a specific field inside of specific block', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          blocks: {
-            cta: { ctaText: true },
+    describe('Exclude mode', () => {
+      it('should exclude only text field', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            text: false,
           },
-        },
+        })
+
+        const expected = { ...post }
+
+        delete expected['text']
+
+        expect(res).toStrictEqual(expected)
       })
 
-      expect(res).toStrictEqual({
-        id: postId,
-        blocks: post.blocks.map((block) =>
-          block.blockType === 'cta'
-            ? { id: block.id, blockType: block.blockType, ctaText: block.ctaText }
-            : {
-                id: block.id,
-                blockType: block.blockType,
-              },
-        ),
+      it('should exclude number', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            number: false,
+          },
+        })
+
+        const expected = { ...post }
+
+        delete expected['number']
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude number and text', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            number: false,
+            text: false,
+          },
+        })
+
+        const expected = { ...post }
+
+        delete expected['text']
+        delete expected['number']
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude group', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            group: false,
+          },
+        })
+
+        const expected = { ...post }
+
+        delete expected['group']
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude text field inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            group: {
+              text: false,
+            },
+          },
+        })
+
+        const expected = deepCopyObject(post)
+
+        delete expected.group.text
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude array', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            array: false,
+          },
+        })
+
+        const expected = { ...post }
+
+        delete expected['array']
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude text field inside of array', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            array: {
+              text: false,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          array: post.array.map((item) => ({
+            id: item.id,
+            number: item.number,
+          })),
+        })
+      })
+
+      it('should exclude blocks', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            blocks: false,
+          },
+        })
+
+        const expected = { ...post }
+
+        delete expected['blocks']
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude all the fields inside of specific block while keeping base fields', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: false,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          blocks: post.blocks.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'cta' ? { id: block.id, blockType: block.blockType } : block,
+          ),
+        })
+      })
+
+      it('should exclude a specific field inside of specific block', async () => {
+        const res = await payload.findByID({
+          collection: 'posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: { ctaText: false },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          blocks: post.blocks.map((block) => {
+            delete block['ctaText']
+
+            return block
+          }),
+        })
       })
     })
   })
 
-  describe('Local API - Base (Exclude mode)', () => {
-    it('should exclude only text field', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          text: false,
-        },
-      })
+  describe('Local API - Localization', () => {
+    let post: LocalizedPost
+    let postId: number | string
 
-      const expected = { ...post }
-
-      delete expected['text']
-
-      expect(res).toStrictEqual(expected)
+    beforeEach(async () => {
+      post = await createLocalizedPost()
+      postId = post.id
     })
 
-    it('should exclude number', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          number: false,
-        },
-      })
-
-      const expected = { ...post }
-
-      delete expected['number']
-
-      expect(res).toStrictEqual(expected)
+    // Clean up to safely mutate in each test
+    afterEach(async () => {
+      await payload.delete({ id: postId, collection: 'localized-posts' })
     })
 
-    it('should exclude number and text', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          number: false,
-          text: false,
-        },
+    describe('Include mode', () => {
+      it('should select only id as default', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {},
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+        })
       })
 
-      const expected = { ...post }
+      it('should select only number', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            number: true,
+          },
+        })
 
-      delete expected['text']
-      delete expected['number']
-
-      expect(res).toStrictEqual(expected)
-    })
-
-    it('should exclude group', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          group: false,
-        },
+        expect(res).toStrictEqual({
+          id: postId,
+          number: post.number,
+        })
       })
 
-      const expected = { ...post }
+      it('should select number and text', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            number: true,
+            text: true,
+          },
+        })
 
-      delete expected['group']
+        expect(res).toStrictEqual({
+          id: postId,
+          number: post.number,
+          text: post.text,
+        })
+      })
 
-      expect(res).toStrictEqual(expected)
-    })
+      it('should select all the fields inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            group: true,
+          },
+        })
 
-    it('should exclude text field inside of group', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
+        expect(res).toStrictEqual({
+          id: postId,
+          group: post.group,
+        })
+      })
+
+      it('should select text field inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            group: {
+              text: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
           group: {
+            text: post.group.text,
+          },
+        })
+      })
+
+      it('should select localized text field inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            groupSecond: {
+              text: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          groupSecond: {
+            text: post.groupSecond.text,
+          },
+        })
+      })
+
+      it('should select id as default from array', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            array: {},
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          array: post.array.map((item) => ({ id: item.id })),
+        })
+      })
+
+      it('should select all the fields inside of array', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            array: true,
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          array: post.array,
+        })
+      })
+
+      it('should select text field inside of localized array', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            array: {
+              text: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          array: post.array.map((item) => ({
+            id: item.id,
+            text: item.text,
+          })),
+        })
+      })
+
+      it('should select localized text field inside of array', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            arraySecond: {
+              text: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          arraySecond: post.arraySecond.map((item) => ({
+            id: item.id,
+            text: item.text,
+          })),
+        })
+      })
+
+      it('should select base fields (id, blockType) inside of blocks', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocks: {},
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks.map((block) => ({ blockType: block.blockType, id: block.id })),
+        })
+      })
+
+      it('should select all the fields inside of blocks', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocks: true,
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks,
+        })
+      })
+
+      it('should select all the fields inside of specific block', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: true,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'cta'
+              ? block
+              : {
+                  id: block.id,
+                  blockType: block.blockType,
+                },
+          ),
+        })
+      })
+
+      it('should select a specific field inside of specific block', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: { ctaText: true },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocks: post.blocks.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'cta'
+              ? { id: block.id, blockType: block.blockType, ctaText: block.ctaText }
+              : {
+                  id: block.id,
+                  blockType: block.blockType,
+                },
+          ),
+        })
+      })
+
+      it('should select a specific localized field inside of specific block 1', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocksSecond: {
+              cta: { text: true },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocksSecond: post.blocksSecond.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'cta'
+              ? { id: block.id, blockType: block.blockType, text: block.text }
+              : {
+                  id: block.id,
+                  blockType: block.blockType,
+                },
+          ),
+        })
+      })
+
+      it('should select a specific localized field inside of specific block 2', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocksSecond: {
+              intro: { introText: true },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          id: postId,
+          blocksSecond: post.blocksSecond.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'intro'
+              ? { id: block.id, blockType: block.blockType, introText: block.introText }
+              : {
+                  id: block.id,
+                  blockType: block.blockType,
+                },
+          ),
+        })
+      })
+    })
+
+    describe('Exclude mode', () => {
+      it('should exclude only text field', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
             text: false,
           },
-        },
+        })
+
+        const expected = { ...post }
+
+        delete expected['text']
+
+        expect(res).toStrictEqual(expected)
       })
 
-      const expected = deepCopyObject(post)
+      it('should exclude number', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            number: false,
+          },
+        })
 
-      delete expected.group.text
+        const expected = { ...post }
 
-      expect(res).toStrictEqual(expected)
-    })
+        delete expected['number']
 
-    it('should exclude array', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          array: false,
-        },
+        expect(res).toStrictEqual(expected)
       })
 
-      const expected = { ...post }
-
-      delete expected['array']
-
-      expect(res).toStrictEqual(expected)
-    })
-
-    it('should exclude text field inside of array', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          array: {
+      it('should exclude number and text', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            number: false,
             text: false,
           },
-        },
+        })
+
+        const expected = { ...post }
+
+        delete expected['text']
+        delete expected['number']
+
+        expect(res).toStrictEqual(expected)
       })
 
-      expect(res).toStrictEqual({
-        ...post,
-        array: post.array.map((item) => ({
-          id: item.id,
-          number: item.number,
-        })),
-      })
-    })
-
-    it('should exclude blocks', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          blocks: false,
-        },
-      })
-
-      const expected = { ...post }
-
-      delete expected['blocks']
-
-      expect(res).toStrictEqual(expected)
-    })
-
-    it('should exclude all the fields inside of specific block while keeping base fields', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          blocks: {
-            cta: false,
+      it('should exclude group', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            group: false,
           },
-        },
+        })
+
+        const expected = { ...post }
+
+        delete expected['group']
+
+        expect(res).toStrictEqual(expected)
       })
 
-      expect(res).toStrictEqual({
-        ...post,
-        blocks: post.blocks.map((block) =>
-          // eslint-disable-next-line jest/no-conditional-in-test
-          block.blockType === 'cta' ? { id: block.id, blockType: block.blockType } : block,
-        ),
-      })
-    })
-
-    it('should exclude a specific field inside of specific block', async () => {
-      const res = await payload.findByID({
-        collection: 'posts',
-        id: postId,
-        select: {
-          blocks: {
-            cta: { ctaText: false },
+      it('should exclude text field inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            group: {
+              text: false,
+            },
           },
-        },
+        })
+
+        const expected = deepCopyObject(post)
+
+        delete expected.group.text
+
+        expect(res).toStrictEqual(expected)
       })
 
-      expect(res).toStrictEqual({
-        ...post,
-        blocks: post.blocks.map((block) => {
-          delete block['ctaText']
+      it('should exclude localized text field inside of group', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            groupSecond: {
+              text: false,
+            },
+          },
+        })
 
-          return block
-        }),
+        const expected = deepCopyObject(post)
+
+        delete expected.groupSecond.text
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude array', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            array: false,
+          },
+        })
+
+        const expected = { ...post }
+
+        delete expected['array']
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude text field inside of array', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            array: {
+              text: false,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          array: post.array.map((item) => ({
+            id: item.id,
+            number: item.number,
+          })),
+        })
+      })
+
+      it('should exclude localized text field inside of array', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            arraySecond: {
+              text: false,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          arraySecond: post.arraySecond.map((item) => ({
+            id: item.id,
+            number: item.number,
+          })),
+        })
+      })
+
+      it('should exclude blocks', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocks: false,
+          },
+        })
+
+        const expected = { ...post }
+
+        delete expected['blocks']
+
+        expect(res).toStrictEqual(expected)
+      })
+
+      it('should exclude all the fields inside of specific block while keeping base fields', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: false,
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          blocks: post.blocks.map((block) =>
+            // eslint-disable-next-line jest/no-conditional-in-test
+            block.blockType === 'cta' ? { id: block.id, blockType: block.blockType } : block,
+          ),
+        })
+      })
+
+      it('should exclude a specific field inside of specific block', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocks: {
+              cta: { ctaText: false },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          blocks: post.blocks.map((block) => {
+            delete block['ctaText']
+
+            return block
+          }),
+        })
+      })
+
+      it('should exclude a specific localized field inside of specific block 1', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocksSecond: {
+              cta: { text: false },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          blocksSecond: post.blocksSecond.map((block) => {
+            // eslint-disable-next-line jest/no-conditional-in-test
+            if (block.blockType === 'cta') {
+              delete block['text']
+            }
+
+            return block
+          }),
+        })
+      })
+
+      it('should exclude a specific localized field inside of specific block 2', async () => {
+        const res = await payload.findByID({
+          collection: 'localized-posts',
+          id: postId,
+          select: {
+            blocksSecond: {
+              intro: { introText: false },
+            },
+          },
+        })
+
+        expect(res).toStrictEqual({
+          ...post,
+          blocksSecond: post.blocksSecond.map((block) => {
+            delete block['introText']
+
+            return block
+          }),
+        })
       })
     })
   })
@@ -444,6 +1033,61 @@ function createPost() {
         },
       ],
       array: [
+        {
+          text: 'text',
+          number: 1,
+        },
+      ],
+    },
+  })
+}
+
+function createLocalizedPost() {
+  return payload.create({
+    collection: 'localized-posts',
+    depth: 0,
+    data: {
+      number: 1,
+      text: 'text',
+      group: {
+        number: 1,
+        text: 'text',
+      },
+      groupSecond: {
+        number: 1,
+        text: 'text',
+      },
+      blocks: [
+        {
+          blockType: 'cta',
+          ctaText: 'cta-text',
+          text: 'text',
+        },
+        {
+          blockType: 'intro',
+          introText: 'intro-text',
+          text: 'text',
+        },
+      ],
+      blocksSecond: [
+        {
+          blockType: 'cta',
+          ctaText: 'cta-text',
+          text: 'text',
+        },
+        {
+          blockType: 'intro',
+          introText: 'intro-text',
+          text: 'text',
+        },
+      ],
+      array: [
+        {
+          text: 'text',
+          number: 1,
+        },
+      ],
+      arraySecond: [
         {
           text: 'text',
           number: 1,
