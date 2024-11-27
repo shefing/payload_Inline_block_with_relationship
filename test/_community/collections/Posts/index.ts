@@ -43,6 +43,16 @@ export const PostsCollection: CollectionConfig = {
                   },
                 ],
               },
+              {
+                slug: 'myInlineBlock2',
+                fields: [
+                  {
+                    name: 'paragraph',
+                    type: 'relationship',
+                    relationTo: 'posts',
+                  },
+                ],
+              },
             ],
           }),
         ],
